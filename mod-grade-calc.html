@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit-Weighted Grade Calculator</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            min-height: 100vh;
+            padding: 32px 16px 56px;
+        }
+
+        .app { max-width: 840px; margin: 0 auto; }
+
+        /* ── Header ── */
+        .header { text-align: center; margin-bottom: 28px; }
+        .header h1 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+        .header p { color: #64748b; margin-top: 6px; font-size: 0.9rem; }
+
+        /* ── Banner ── */
+        .banner {
+            background: linear-gradient(135deg, #4338ca 0%, #7c3aed 100%);
+            border-radius: 20px;
+            padding: 32px 28px;
+            color: white;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 18px;
+            box-shadow: 0 6px 24px rgba(99,102,241,0.35);
+        }
+        .stat-block {
+            background: rgba(255,255,255,0.13);
+            border-radius: 14px;
+            padding: 18px 16px;
+            text-align: center;
+        }
+        .stat-num { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .stat-lbl { font-size: 0.67rem; opacity: 0.78; text-transform: uppercase; letter-spacing: 0.07em; margin-top: 5px; }
+        .grade-center { text-align: center; }
+        .grade-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; opacity: 0.8; }
+        .grade-big { font-size: 4.2rem; font-weight: 900; line-height: 1; margin: 8px 0 10px; letter-spacing: -0.03em; }
+        .grade-tag { font-size: 0.88rem; font-weight: 500; opacity: 0.92; }
+
+        /* ── Card ── */
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 22px 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.04);
+            margin-bottom: 16px;
+        }
+
+        /* ── Table ── */
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+
+        thead th {
+            font-size: 0.67rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            padding: 6px 10px 13px;
+            text-align: left;
+            border-bottom: 2px solid #f1f5f9;
+            white-space: nowrap;
+        }
+        thead th .hint {
+            display: block;
+            font-size: 0.6rem;
+            letter-spacing: 0.04em;
+            opacity: 0.7;
+            font-weight: 500;
+            margin-top: 2px;
+            text-transform: none;
+        }
+
+        .mod-row td { padding: 6px 10px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+        .mod-row:last-child td { border-bottom: none; }
+        .mod-row:hover td { background: #f8fafc; }
+
+        /* ── Inputs ── */
+        .inp {
+            width: 100%;
+            padding: 7px 11px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            color: #0f172a;
+            background: #fff;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .inp:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.13); }
+        .inp-num { text-align: right; }
+        .inp.ok  { border-color: #4ade80; }
+        .inp.err { border-color: #f87171; background: #fef2f2; }
+
+        /* ── Weight & points cells ── */
+        .pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            background: #ede9fe;
+            color: #5b21b6;
+            white-space: nowrap;
+        }
+        .pts-cell { font-size: 0.84rem; font-weight: 600; text-align: right; white-space: nowrap; }
+
+        /* ── Remove button ── */
+        .rm-btn {
+            border: none; background: none; color: #cbd5e1;
+            font-size: 1.1rem; cursor: pointer; padding: 5px 8px;
+            border-radius: 6px; line-height: 1;
+            transition: color 0.15s, background 0.15s;
+        }
+        .rm-btn:hover { color: #ef4444; background: #fef2f2; }
+
+        /* ── Add / Reset buttons ── */
+        .add-btn {
+            width: 100%; margin-top: 14px; padding: 11px;
+            border: 1.5px dashed #c7d2fe; border-radius: 10px;
+            background: white; color: #6366f1;
+            font-size: 0.88rem; font-weight: 600;
+            cursor: pointer; font-family: inherit;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .add-btn:hover { background: #eef2ff; border-color: #a5b4fc; }
+
+        .reset-btn {
+            padding: 8px 18px; border: 1.5px solid #fecaca;
+            border-radius: 8px; background: white; color: #ef4444;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
+            transition: background 0.15s;
+        }
+        .reset-btn:hover { background: #fef2f2; }
+
+        .card-footer {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-top: 14px;
+        }
+        .save-notice { font-size: 0.72rem; color: #94a3b8; }
+
+        /* ── Grade reference ── */
+        .ref-title {
+            font-size: 0.68rem; font-weight: 700; color: #94a3b8;
+            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+        }
+        .ref-row {
+            display: flex; align-items: center; gap: 14px;
+            padding: 8px 10px; border-radius: 9px; margin-bottom: 4px;
+        }
+        .ref-row:nth-child(odd) { background: #f8fafc; }
+        .badge {
+            display: inline-block; padding: 4px 13px;
+            border-radius: 20px; font-size: 0.74rem; font-weight: 700; white-space: nowrap;
+        }
+        .b1 { background: #fef9c3; color: #713f12; }
+        .b2 { background: #dbeafe; color: #1e3a8a; }
+        .b3 { background: #d1fae5; color: #064e3b; }
+        .b4 { background: #f1f5f9; color: #475569; }
+        .b5 { background: #fee2e2; color: #7f1d1d; }
+        .ref-pct { font-size: 0.82rem; color: #64748b; }
+        .ref-note { font-size: 0.71rem; color: #cbd5e1; margin-top: 11px; }
+
+        footer { text-align: center; color: #cbd5e1; font-size: 0.73rem; margin-top: 26px; }
+
+        @media (max-width: 560px) {
+            .banner { grid-template-columns: 1fr 1fr; }
+            .grade-center { grid-column: 1 / -1; order: -1; }
+            .grade-big { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <div class="header">
+        <h1>📚 Grade Calculator</h1>
+        <p>Credit-weighted &middot; Enter your modules, grades, and credit values</p>
+    </div>
+
+    <!-- Result banner -->
+    <div class="banner">
+        <div class="stat-block">
+            <div class="stat-num" id="stat-mods">0</div>
+            <div class="stat-lbl">Modules with grades</div>
+        </div>
+        <div class="grade-center">
+            <div class="grade-lbl">Weighted Average</div>
+            <div class="grade-big" id="grade-display">—</div>
+            <div class="grade-tag" id="grade-tag">Enter your grades below</div>
+        </div>
+        <div class="stat-block">
+            <div class="stat-num" id="stat-creds">0</div>
+            <div class="stat-lbl">Total Credits</div>
+        </div>
+    </div>
+
+    <!-- Module table -->
+    <div class="card">
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:34%">Module Name</th>
+                        <th style="width:15%">Grade %</th>
+                        <th style="width:13%">Credits</th>
+                        <th style="width:14%">
+                            Module Weight
+                            <span class="hint">% of total credits</span>
+                        </th>
+                        <th style="width:15%">
+                            Grade Points
+                            <span class="hint">contribution to avg</span>
+                        </th>
+                        <th style="width:5%"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+        <button class="add-btn" onclick="addRow()">＋ Add Module</button>
+        <div class="card-footer">
+            <span class="save-notice">💾 Data auto-saves in your browser</span>
+            <button class="reset-btn" onclick="resetAll()">↺ Reset All</button>
+        </div>
+    </div>
+
+    <!-- Grade reference -->
+    <div class="card">
+        <div class="ref-title">Grade Classification — Irish / UK System</div>
+        <div class="ref-row"><span class="badge b1">First Class Honours</span><span class="ref-pct">70% and above</span></div>
+        <div class="ref-row"><span class="badge b2">Second Class Honours — Grade 1 (2:1)</span><span class="ref-pct">60% – 69%</span></div>
+        <div class="ref-row"><span class="badge b3">Second Class Honours — Grade 2 (2:2)</span><span class="ref-pct">50% – 59%</span></div>
+        <div class="ref-row"><span class="badge b4">Third Class Honours</span><span class="ref-pct">40% – 49%</span></div>
+        <div class="ref-row"><span class="badge b5">Fail</span><span class="ref-pct">Below 40%</span></div>
+        <p class="ref-note">Thresholds vary by institution — always check your course handbook.</p>
+    </div>
+
+    <footer>Credit-Weighted Grade Calculator &middot; Works offline &middot; No account needed &middot; All data stays in your browser</footer>
+
+</div>
+<script>
+    var uid = 0;
+
+    function escHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+
+    function gradeTag(avg) {
+        if (avg >= 70) return '🏆 First Class Honours';
+        if (avg >= 60) return '🎓 Second Class Honours — 2:1';
+        if (avg >= 50) return '📘 Second Class Honours — 2:2';
+        if (avg >= 40) return '📗 Third Class Honours';
+        return '❌ Fail';
+    }
+
+    function ptsColor(g) {
+        if (g >= 70) return '#16a34a';
+        if (g >= 60) return '#2563eb';
+        if (g >= 50) return '#0891b2';
+        if (g >= 40) return '#d97706';
+        return '#dc2626';
+    }
+
+    function addRow(name, grade, credits) {
+        uid++;
+        var id = uid;
+        var tr = document.createElement('tr');
+        tr.className = 'mod-row';
+        tr.id = 'row-' + id;
+        tr.innerHTML =
+            '<td><input class="inp" type="text" placeholder="e.g. Marine Ecology"' +
+            ' value="' + escHtml(name) + '" oninput="saveData()" aria-label="Module name"/></td>' +
+            '<td><input class="inp inp-num" id="g' + id + '" type="number"' +
+            ' placeholder="0–100" min="0" max="100" step="0.01"' +
+            ' value="' + escHtml(grade) + '" oninput="validateGrade(this);calculate();saveData();"' +
+            ' aria-label="Grade percentage"/></td>' +
+            '<td><input class="inp inp-num" id="c' + id + '" type="number"' +
+            ' placeholder="e.g. 10" min="0" max="999" step="1"' +
+            ' value="' + escHtml(credits) + '" oninput="calculate();saveData();"' +
+            ' aria-label="Credits"/></td>' +
+            '<td><span class="pill" id="w' + id + '">—</span></td>' +
+            '<td class="pts-cell" id="p' + id + '" style="color:#94a3b8">—</td>' +
+            '<td><button class="rm-btn" onclick="removeRow(' + id + ')" title="Remove module" aria-label="Remove module">✕</button></td>';
+        document.getElementById('tbody').appendChild(tr);
+        calculate();
+    }
+
+    function removeRow(id) {
+        var row = document.getElementById('row-' + id);
+        if (row) { row.remove(); calculate(); saveData(); }
+    }
+
+    function resetAll() {
+        if (!confirm('Reset all modules and start fresh?')) return;
+        document.getElementById('tbody').innerHTML = '';
+        uid = 0;
+        for (var i = 0; i < 9; i++) addRow();
+        saveData();
+    }
+
+    function validateGrade(el) {
+        var v = parseFloat(el.value);
+        el.classList.remove('ok', 'err');
+        if (el.value === '') return;
+        el.classList.add(!isNaN(v) && v >= 0 && v <= 100 ? 'ok' : 'err');
+    }
+
+    function calculate() {
+        var rows = document.querySelectorAll('.mod-row');
+        var totalW = 0, totalC = 0, mods = 0;
+        var items = [];
+
+        rows.forEach(function(row) {
+            var rid = row.id.replace('row-', '');
+            var gEl = document.getElementById('g' + rid);
+            var cEl = document.getElementById('c' + rid);
+            if (!gEl || !cEl) return;
+            var g = parseFloat(gEl.value);
+            var c = parseFloat(cEl.value);
+            items.push({ rid: rid, g: g, c: c });
+            if (!isNaN(g) && !isNaN(c) && g >= 0 && g <= 100 && c > 0) {
+                totalW += g * c;
+                totalC += c;
+                mods++;
+            }
+        });
+
+        items.forEach(function(item) {
+            var wEl = document.getElementById('w' + item.rid);
+            var pEl = document.getElementById('p' + item.rid);
+            if (!wEl || !pEl) return;
+            var valid = !isNaN(item.g) && !isNaN(item.c) && item.g >= 0 && item.g <= 100 && item.c > 0 && totalC > 0;
+            if (valid) {
+                wEl.textContent = (item.c / totalC * 100).toFixed(1) + '%';
+                var pts = (item.g * item.c / totalC).toFixed(2);
+                pEl.textContent = pts;
+                pEl.style.color = ptsColor(item.g);
+            } else {
+                wEl.textContent = '—';
+                pEl.textContent = '—';
+                pEl.style.color = '#94a3b8';
+            }
+        });
+
+        document.getElementById('stat-mods').textContent = mods;
+        document.getElementById('stat-creds').textContent = totalC || 0;
+
+        if (totalC > 0 && mods > 0) {
+            var avg = totalW / totalC;
+            document.getElementById('grade-display').textContent = avg.toFixed(1) + '%';
+            document.getElementById('grade-tag').textContent = gradeTag(avg);
+        } else {
+            document.getElementById('grade-display').textContent = '—';
+            document.getElementById('grade-tag').textContent = 'Enter your grades below';
+        }
+    }
+
+    function saveData() {
+        var rows = document.querySelectorAll('.mod-row');
+        var data = [];
+        rows.forEach(function(row) {
+            var rid = row.id.replace('row-', '');
+            data.push({
+                name:    row.querySelector('input[type="text"]') ? row.querySelector('input[type="text"]').value : '',
+                grade:   document.getElementById('g' + rid) ? document.getElementById('g' + rid).value : '',
+                credits: document.getElementById('c' + rid) ? document.getElementById('c' + rid).value : ''
+            });
+        });
+        try { localStorage.setItem('gradeCalc_v1', JSON.stringify(data)); } catch(e) {}
+    }
+
+    function loadData() {
+        try {
+            var raw = localStorage.getItem('gradeCalc_v1');
+            if (!raw) return false;
+            var data = JSON.parse(raw);
+            if (!Array.isArray(data) || data.length === 0) return false;
+            data.forEach(function(d) { addRow(d.name, d.grade, d.credits); });
+            return true;
+        } catch(e) { return false; }
+    }
+
+    // Init
+    if (!loadData()) {
+        for (var i = 0; i < 9; i++) addRow();
+    }
+    calculate();
+</script>
+</body>
+</html>
